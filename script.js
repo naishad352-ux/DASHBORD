@@ -1,91 +1,139 @@
-const textarea = document.getElementById("textarea");
+const input = document.getElementById("textInput");
 
-const charCount = document.getElementById("charCount");
-const wordCount = document.getElementById("wordCount");
-const lineCount = document.getElementById("lineCount");
+const warning = document.getElementById("warning");
+const freqTable = document.getElementById("freqTable");
+const words = document.getElementById("words");
+const chars = document.getElementById("chars");
+const spaces = document.getElementById("spaces");
+const lines = document.getElementById("lines");
+const readingTime = document.getElementById("readingTime");
+const progressBar = document.getElementById("progressBar");
 
-const densityTable = document.getElementById("densityTable");
-const clearBtn = document.getElementById("clearBtn");
+const LIMIT = 200;
 
-// Create A-Z Rows
-for (let i = 97; i <= 122; i++) {
-    const letter = String.fromCharCode(i);
+// Load Saved Text
+input.value = localStorage.getItem("savedText") || "";
 
-    const row = document.createElement("tr");
+analyze();
 
-    row.innerHTML = `
-        <td>${letter.toUpperCase()}</td>
-        <td id="letter-${letter}">0</td>
-    `;
+input.addEventListener("input", () => {
+    localStorage.setItem("savedText", input.value);
+    analyze();
+});
 
-    densityTable.appendChild(row);
+function analyze(){
+
+    const text = input.value;
+
+    // Words
+    const wordArray = text
+        .trim()
+        .split(/\s+/)
+        .filter(word => word.length > 0);
+
+    words.textContent = wordArray.length;
+
+    // Characters
+    chars.textContent = text.length;
+
+    // Spaces
+    spaces.textContent = (text.match(/\s/g) || []).length;
+    
+    // Lines
+    lines.textContent =
+        text.length === 0
+        ? 0
+        : text.split("\n").length;
+
+    // Reading Time
+    readingTime.textContent =
+        Math.ceil(wordArray.length / 200) +
+        " min";
+
+    // Progress Bar
+    const percentage =
+        (text.length / LIMIT) * 100;
+
+    progressBar.style.width =
+        Math.min(percentage,100) + "%";
+
+    if(text.length > LIMIT){
+        warning.textContent =
+            "⚠ Character limit exceeded!";
+        progressBar.style.background =
+            "red";
+    }else{
+        warning.textContent = "";
+        progressBar.style.background =
+            "limegreen";
+    }
+
+    updateFrequency(text);
 }
-// Text Analyzer
-textarea.addEventListener("input", () => {
 
-    const text = textarea.value;
+function updateFrequency(text){
 
-    // Character Count
-    const characters = text.length;
+    const counts = {};
 
-    // Word Count
-    const words =
-        text.trim() === ""
-            ? 0
-            : text.trim().split(/\s+/).length;
+    const cleanText =
+        text
+        .toLowerCase()
+        .replace(/[^a-z]/g,'');
 
-    // Line Count
-    const lines =
-        text === ""
-            ? 0
-            : text.split("\n").length;
-
-    charCount.textContent = characters;
-    wordCount.textContent = words;
-    lineCount.textContent = lines;
-
-    // Character Limit
-    if (characters > 200) {
-        charCount.style.color = "red";
-    } else {
-        charCount.style.color = "";
+    for(let char of cleanText){
+        counts[char] =
+            (counts[char] || 0) + 1;
     }
 
-    // Reset Counts
-    for (let i = 97; i <= 122; i++) {
-        const letter = String.fromCharCode(i);
+    let html = "<tr>";
 
-        document.getElementById(`letter-${letter}`)
-            .textContent = 0;
-    }
+    for(let i = 65; i <= 90; i++){
 
-    // Count Letters
-    for (const char of text.toLowerCase()) {
+        let char =
+            String.fromCharCode(i)
+            .toLowerCase();
 
-        if (char >= "a" && char <= "z") {
+        html += `
+            <td>
+                <b>${char.toUpperCase()}</b>
+                <br>
+                ${counts[char] || 0}
+            </td>
+        `;
 
-            const cell =
-                document.getElementById(`letter-${char}`);
-
-            cell.textContent =
-                Number(cell.textContent) + 1;
+        if((i - 64) % 6 === 0){
+            html += "</tr><tr>";
         }
     }
-});
 
-// Clear Button
-clearBtn.addEventListener("click", () => {
+    html += "</tr>";
 
-    textarea.value = "";
+    freqTable.innerHTML = html;
+}
 
-    charCount.textContent = 0;
-    wordCount.textContent = 0;
-    lineCount.textContent = 0;
+function copyText(){
 
-    for (let i = 97; i <= 122; i++) {
-        const letter = String.fromCharCode(i);
+    navigator.clipboard.writeText(
+        input.value
+    );
 
-        document.getElementById(`letter-${letter}`)
-            .textContent = 0;
-    }
-});
+    alert("Copied Successfully!");
+}
+
+function clearText(){
+
+    input.value = "";
+
+    localStorage.removeItem(
+        "savedText"
+    );
+
+    analyze();
+}
+
+function toggleTheme(){
+
+    document.body.classList.toggle(
+        "dark"
+    );
+}
